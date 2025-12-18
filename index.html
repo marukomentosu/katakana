@@ -2,101 +2,106 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>カタカナ練習マスター - レイヤー修正版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>カタカナ練習マスター - 全画面モード</title>
     <style>
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background-color: #fff9f0; /* 少し温かみのある色に */
+        body, html {
             margin: 0;
-            padding: 20px;
-        }
-        h1 { color: #d35400; margin-bottom: 10px; }
-        .controls { margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-        
-        #canvas-container {
-            position: relative;
-            background-color: white;
-            border: 8px solid #f39c12; /* 縁を太くして学習机感を */
-            border-radius: 15px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            touch-action: none;
+            padding: 0;
+            width: 100%;
+            height: 100%;
             overflow: hidden;
+            background-color: #ffffff;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
         }
-        
-        canvas { 
-            cursor: crosshair; 
-            z-index: 1; /* キャンバスを下に */
-            position: relative;
+
+        /* 操作パネルを浮かせる */
+        .ui-panel {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px 20px;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            backdrop-filter: blur(5px);
+            align-items: center;
         }
-        
-        .guide-text {
-            position: absolute;
+
+        /* 補助線 */
+        .grid-lines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .line-h { position: absolute; top: 50%; left: 0; width: 100%; height: 1px; border-top: 1px dashed #ddd; }
+        .line-v { position: absolute; left: 50%; top: 0; width: 1px; height: 100%; border-left: 1px dashed #ddd; }
+
+        /* お手本（最前面） */
+        #guide {
+            position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 320px;
-            /* 半透明のガイドを一番手前に持ってくる */
-            color: rgba(0, 0, 0, 0.1); 
+            font-size: 80vh; /* 画面の高さに合わせて巨大化 */
+            color: rgba(0, 0, 0, 0.05); /* 非常に薄く */
             user-select: none;
-            pointer-events: none; /* これにより、文字の上からでも下のキャンバスに描画できる */
-            z-index: 2; /* キャンバスより上に配置 */
-            font-weight: bold;
-        }
-
-        /* 十字の補助線を追加 */
-        .grid-line-h, .grid-line-v {
-            position: absolute;
-            background-color: #eee;
             pointer-events: none;
-            z-index: 0;
-        }
-        .grid-line-h { width: 100%; height: 2px; top: 50%; left: 0; }
-        .grid-line-v { width: 2px; height: 100%; top: 0; left: 50%; }
-
-        button {
-            padding: 12px 24px;
-            font-size: 18px;
+            z-index: 10;
             font-weight: bold;
-            cursor: pointer;
-            background-color: #f39c12;
-            color: white;
-            border: none;
-            border-radius: 50px;
-            transition: 0.2s;
-            box-shadow: 0 4px 0 #e67e22;
+            white-space: nowrap;
         }
-        button:active { transform: translateY(4px); box-shadow: none; }
-        button.clear { background-color: #95a5a6; box-shadow: 0 4px 0 #7f8c8d; }
+
+        canvas {
+            display: block;
+            touch-action: none;
+            z-index: 5;
+            position: relative;
+        }
+
+        button, select {
+            padding: 10px 15px;
+            font-size: 16px;
+            border-radius: 20px;
+            border: 2px solid #3498db;
+            background: white;
+            cursor: pointer;
+        }
+
+        button.clear { background: #ff7675; color: white; border: none; }
+        button.next { background: #3498db; color: white; border: none; }
         
-        select {
-            padding: 10px;
-            font-size: 20px;
-            border-radius: 10px;
-            border: 3px solid #f39c12;
+        /* スマホ向けの調整 */
+        @media (max-width: 600px) {
+            .ui-panel { width: 90%; justify-content: space-around; padding: 5px; }
+            #guide { font-size: 60vw; }
         }
     </style>
 </head>
 <body>
 
-    <h1>カタカナれんしゅう</h1>
-
-    <div class="controls">
+    <div class="ui-panel">
         <select id="char-selector"></select>
-        <button onclick="clearCanvas()" class="clear">けす</button>
-        <button onclick="nextChar()">つぎの文字</button>
+        <button class="clear" onclick="clearCanvas()">けす</button>
+        <button class="next" onclick="nextChar()">つぎへ</button>
     </div>
 
-    <div id="canvas-container">
-        <div class="grid-line-h"></div>
-        <div class="grid-line-v"></div>
-        
-        <div id="guide" class="guide-text">ア</div>
-        
-        <canvas id="paintCanvas" width="400" height="400"></canvas>
+    <div class="grid-lines">
+        <div class="line-h"></div>
+        <div class="line-v"></div>
     </div>
+
+    <div id="guide">ア</div>
+
+    <canvas id="paintCanvas"></canvas>
 
     <script>
         const canvas = document.getElementById('paintCanvas');
@@ -107,7 +112,18 @@
         const katakana = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン";
         let isDrawing = false;
 
-        // 初期設定
+        // 全画面サイズにキャンバスを合わせる
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // リサイズ時に線の設定が消えるので再設定
+            ctx.lineWidth = 20;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = '#2d3436';
+        }
+
+        // セレクトボックス初期化
         katakana.split('').forEach(char => {
             const opt = document.createElement('option');
             opt.value = char;
@@ -115,10 +131,8 @@
             selector.appendChild(opt);
         });
 
-        ctx.lineWidth = 18; // 少し太めにして書きやすく
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.strokeStyle = '#2980b9'; // 書く線は青系に
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
         function startDrawing(e) {
             isDrawing = true;
@@ -132,9 +146,8 @@
 
         function draw(e) {
             if (!isDrawing) return;
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
-            const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+            const x = (e.clientX || (e.touches && e.touches[0].clientX));
+            const y = (e.clientY || (e.touches && e.touches[0].clientY));
 
             ctx.lineTo(x, y);
             ctx.stroke();
@@ -158,10 +171,12 @@
             clearCanvas();
         }
 
+        // マウスイベント
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('mousemove', draw);
         window.addEventListener('mouseup', stopDrawing);
 
+        // タッチイベント
         canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); }, {passive: false});
         canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); }, {passive: false});
         canvas.addEventListener('touchend', stopDrawing);
